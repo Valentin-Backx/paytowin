@@ -34,8 +34,8 @@ define(["socket.io","collide","player","item"],function(io,collide) {
 	var main = function(game){
 	};
 	var map;
-	var layer;
 	var cursors;
+	var jumpButton;
 	// add the 
 	main.prototype = {
 		preload: function() {
@@ -51,14 +51,11 @@ define(["socket.io","collide","player","item"],function(io,collide) {
 			//sets the y gravity to 0. This means players won’t fall down by gravity
 			game.physics.p2.gravity.y = 1000;
 
-			game.physics.p2.enableBody(game.physics.p2.walls, false); 
+			game.physics.p2.enableBody(game.physics.p2.walls, true); 
 			// turn on collision detection
 			game.physics.p2.setImpactEvents(true);
 
-
-
-
-
+			game.physics.p2.world.defaultContactMaterial.friction = 0.3;
 			game.load.tilemap('map','assets/projets_tilemaps.json',null,Phaser.Tilemap.TILED_JSON)
 			game.load.image('tileset','assets/tileset.png')
 
@@ -66,31 +63,42 @@ define(["socket.io","collide","player","item"],function(io,collide) {
 
 
 
+			game.tilesCollisionGroup = game.physics.p2.createCollisionGroup();
+			game.playerCollisionGroup = game.physics.p2.createCollisionGroup();
 
 
 	    },
 		//this function is fired once when we load the game
 		create: function () {
-		
 			cursors = game.input.keyboard.createCursorKeys();
-			
+
 			map = game.add.tilemap('map')
 			
 			map.addTilesetImage('tileset');
 
-			layer = map.createLayer("collision_layer")
+			game.mapCollisionlayer = map.createLayer("collision_layer")
 			
+			//game.mapCollisionlayer.setCollisionGroup(game.tilesCollisionGroup)
+			//map.setCollisionBetween(1,12,true,"collision_layer");
 
-			//game.stage.backgroundColor = 0xE1A193;
-			console.log("client started");
+			map.setCollisionByExclusion([],true,"collision_layer");
+
+			var tileObjects = game.physics.p2.convertTilemap(map,"collision_layer",)
+
+			  for (var i = 0; i < tileObjects.length; i++) {        
+			  	var tileBody = tileObjects[i];        
+			  	tileBody.setCollisionGroup(game.tilesCollisionGroup);        
+			  	tileBody.collides(game.playerCollisionGroup);    
+			  } 
+
 			//listen to the “connect” message from the server. The server 
 			//automatically emit a “connect” message when the cleint connets.When 
 			//the client connects, call onsocketConnected.  
 			socket.on("connect", onsocketConnected); 
 
 			//listen for main player creation
-			socket.on("create_player", createPlayer);
-
+			//socket.on("create_player", createPlayer);
+			createPlayer({x: 780, y: 450, angle: 0});
 			//listen to new enemy connections
 			socket.on("new_enemyPlayer", onNewPlayer);
 			//listen to enemy movement 
@@ -128,12 +136,23 @@ define(["socket.io","collide","player","item"],function(io,collide) {
 					pointer_worldy: pointer.worldY, 
 				});
 
+				game.physics
+
 			}
 
 			if(game.localPlayer)
 			{
 				game.camera.y = game.localPlayer.sprite.y - canvas_height/2;
 				game.camera.x = game.localPlayer.sprite.x - canvas_width/2;
+
+				var inputs = {
+					"up":cursors.up.isDown,
+					"down":cursors.down.isDown,
+					"left":cursors.left.isDown,
+					"right":cursors.right.isDown
+				}
+				game.localPlayer.inputReceived(inputs);
+
 			}else
 			{
 			    if (cursors.up.isDown)
@@ -180,29 +199,6 @@ define(["socket.io","collide","player","item"],function(io,collide) {
 
 		game.localPlayer = new Player(data);
 
-/*		player = game.add.graphics(0, 0);
-		player.radius = data.size;
-
-		// set a fill and line style
-		player.beginFill(0xffd900);
-		player.lineStyle(2, 0xffd900, 1);
-		player.drawCircle(0, 0, player.radius * 2);
-		player.endFill();
-		player.anchor.setTo(0.5,0.5);
-		player.body_size = player.radius; 
-		//set the initial size;
-		player.initial_size = player.radius;
-
-		// draw a shape
-		game.physics.p2.enableBody(player, true);
-		player.body.clearShapes();
-		player.body.addCircle(player.body_size, 0 , 0); 
-		player.body.data.shapes[0].sensor = true;
-		//enable collision and when it makes a contact with another body, call player_coll
-		player.body.onBeginContact.add(player_coll, this);
-		
-		//We need this line to make camera follow player
-		//game.camera.follow(player, Phaser.Camera.FOLLOW_LOCKON, 0.5, 0.5);*/
 	}
 
 	// this is the enemy class. 

@@ -77,22 +77,54 @@ function angleToPointer (displayObject, pointer, world) {
 function Player(data)
 {
 	this.sprite = game.add.sprite(data.x,data.y,'adventurer')
+	this.sprite.scale.set(2)
 	this.sprite.animations.add('walk',[8,9,10,11,12,13,14],10,true);
 
-	this.sprite.animations.add('idle',[0,1,2,3],10,true)
+	this.sprite.animations.add('idle',[0,1,2,3],6,true)
 
 	this.sprite.animations.play('idle')
 
 	game.physics.p2.enable(this.sprite);
 	
-	//this.sprite.body.gravity.y = 50
 
+	this.sprite.body.setCollisionGroup(game.playerCollisionGroup)
+	this.sprite.body.collides(game.tilesCollisionGroup,this.hitPlatform,this);
+	this.sprite.body.fixedRotation = true;
+	this.grounded = false;
+	this.jumpReleased = false;
+
+	//this.sprite.body.setMaterial(spriteMaterial);
 }
 
 Player.prototype = 
 {
 	inputReceived : function(data)
 	{
+		if(!data.up)
+		{
+			this.jumpReleased = true;
+		}
+		if(data.up&&this.grounded&&this.jumpReleased)
+		{
 
+			this.jumpReleased = this.grounded = false;
+			this.sprite.body.velocity.y = -600
+		}
+		if(data.down)
+		{
+			this.sprite.body.velocity.y = 300
+		}
+		if(data.left)
+		{
+			this.sprite.body.velocity.x = -300
+		}
+		if(data.right)
+		{
+			this.sprite.body.velocity.x = 300
+		}
+	},
+	hitPlatform : function()
+	{
+		this.grounded = true;
 	}
 }
