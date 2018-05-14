@@ -55,11 +55,17 @@ define(["socket.io","collide","player","item"],function(io,collide) {
 			// turn on collision detection
 			game.physics.p2.setImpactEvents(true);
 
-			game.physics.p2.world.defaultContactMaterial.friction = 0.3;
+			game.physics.p2.world.defaultContactMaterial.friction = 3;
 			game.load.tilemap('map','assets/projets_tilemaps.json',null,Phaser.Tilemap.TILED_JSON)
 			game.load.image('tileset','assets/tileset.png')
 
-			game.load.spritesheet('adventurer','assets/adventurer-1.2-Sheet.png',50,37,11)
+			game.load.spritesheet(
+				'adventurer',
+				'assets/adventurer-1.2-Sheet.png',
+				50,
+				37,
+				85
+				)
 
 
 
@@ -177,7 +183,9 @@ define(["socket.io","collide","player","item"],function(io,collide) {
 
 		render : function()
 		{
-			game.debug.cameraInfo(game.camera,32,32)
+			//game.debug.cameraInfo(game.camera,32,32)
+			//game.debug.bodyInfo(game.localPlayer.sprite, 32, 32);
+        	//game.debug.body(game.localPlayer.sprite);
 		}
 	}
 
@@ -194,8 +202,6 @@ define(["socket.io","collide","player","item"],function(io,collide) {
 
 	function createPlayer (data) {
 		console.log("creating player")
-
-		game.add.sprite()
 
 		game.localPlayer = new Player(data);
 

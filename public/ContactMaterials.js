@@ -1,6 +1,5 @@
 var contactMaterial,spriteMaterial,worldMaterial;
 
-
 function getContactMaterial(game)
 {
 	spriteMaterial = game.physics.p2.createMaterial('spriteMaterial', sprite.body);
