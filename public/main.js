@@ -206,14 +206,13 @@ define(["socket.io","collide","helpers","player","item",],function(io,collide) {
 	}
 
 	// this is the enemy class. 
-	var remote_player = function (id, startx, starty, startSize, start_angle) {
+	var remote_player = function (id, startx, starty) {
 		this.x = startx;
 		this.y = starty;
 		//this is the unique socket id. We use it as a unique name for enemy
 		this.id = id;
-		this.angle = start_angle;
 		
-		this.player = game.add.graphics(this.x , this.y);
+		this.player = game.add.sprite(startx,starty,'adventurer')
 		//intialize the size with the server value
 		this.player.radius = startSize
 

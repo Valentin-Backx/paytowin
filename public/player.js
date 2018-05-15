@@ -144,7 +144,6 @@ Player.prototype =
 				this.sprite.body.velocity.x = -this.playerVelocity;
 			}else
 			{
-
 				this.sprite.body.force.x = -this.airControlForce;
 				this.sprite.body.velocity.x = helpers.clamp(this.sprite.body.velocity.x,-this.playerVelocity,this.playerVelocity);
 			}
