@@ -79,12 +79,14 @@ function Player(data)
 	this.scaleBase = 2;
 	
 	this.airControlFactor = 0.5;
+
+	this.airControlForce= 1000;
 	
 	this.sprite = game.add.sprite(data.x,data.y,'adventurer')
 	
 	this.sprite.scale.set(this.scaleBase)
 
-	this.sprite.animations.add('walk',[8,9,10,11,12,13,14,15],10,true);
+	this.sprite.animations.add('walk',[8,9,10,11,12,13],10,true);
 
 	this.sprite.animations.add('idle',[0,1,2,3],6,true);
 
@@ -103,7 +105,10 @@ function Player(data)
 	this.sprite.body.fixedRotation = true;
 	//this.sprite.body.debug = true;
 	this.grounded = false;
+	this.onJumpVelocity=0;
 	this.jumpReleased = false;
+
+	this.playerVelocity = 400;
 	//this.sprite.body.setMaterial(spriteMaterial);
 
 	
@@ -122,6 +127,7 @@ Player.prototype =
 		{
 
 			this.jumpReleased = this.grounded = false;
+			this.onJumpVelocity = this.sprite.body.velocity.y;
 			this.sprite.body.velocity.y = -650
 			this.sprite.animations.play('jump');
 		}
@@ -131,20 +137,29 @@ Player.prototype =
 		}
 		if(data.left)
 		{
-			this.sprite.body.velocity.x = -400 * (this.grounded?1:this.airControlFactor)
 			this.sprite.scale.x = -1 * this.scaleBase
 			if(this.grounded)
 			{
-				this.sprite.animations.play('walk')
+				this.sprite.animations.play('walk');
+				this.sprite.body.velocity.x = -this.playerVelocity;
+			}else
+			{
+
+				this.sprite.body.force.x = -this.airControlForce;
+				this.sprite.body.velocity.x = helpers.clamp(this.sprite.body.velocity.x,-this.playerVelocity,this.playerVelocity);
 			}
 		}
 		if(data.right)
 		{
-			this.sprite.body.velocity.x = 400 * (this.grounded?1:this.airControlFactor)
 			this.sprite.scale.x = 1 * this.scaleBase
 			if(this.grounded)
 			{
+				this.sprite.body.velocity.x = this.playerVelocity;
 				this.sprite.animations.play('walk')
+			}else
+			{
+				this.sprite.body.force.x =this.airControlForce;
+				this.sprite.body.velocity.x = helpers.clamp(this.sprite.body.velocity.x,-this.playerVelocity,this.playerVelocity);
 			}
 		}
 		if(this.grounded&&!(data.right||data.left||data.up)&&this.sprite.animations.currentAnim.name!='idle')

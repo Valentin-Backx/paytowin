@@ -3,7 +3,7 @@
 	console.log(s)
 })*/
 
-define(["socket.io","collide","player","item"],function(io,collide) {
+define(["socket.io","collide","helpers","player","item",],function(io,collide) {
 	var socket; // define a global variable called socket 
 
 	socket = io.connect(); // send a connection request to the server
@@ -141,8 +141,6 @@ define(["socket.io","collide","player","item"],function(io,collide) {
 					pointer_worldx: pointer.worldX, 
 					pointer_worldy: pointer.worldY, 
 				});
-
-				game.physics
 
 			}
 
