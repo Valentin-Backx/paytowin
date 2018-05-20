@@ -1,8 +1,8 @@
 var express = require('express')
 var unique = require('node-uuid')
-var p2 = require('p2');
+//var p2 = require('p2');
 
-var physicsPlayer = require('./physics/playermovement.js');
+//var physicsPlayer = require('./physics/playermovement.js');
 
 var app = express();
 
@@ -44,9 +44,9 @@ var timeStep= 1/70;
 
 //the physics world in the server. This is where all the physics happens. 
 //we set gravity to 0 since we are just following mouse pointers.
-var world = new p2.World({
+/*var world = new p2.World({
   gravity : [0,0]
-});
+});*/
 
 //create a game class to store basic game data
 var game_setup = function() {
@@ -64,16 +64,31 @@ var game_setup = function() {
 var game_instance = new game_setup();
 
 // A player “class”, which will be stored inside player list 
-var Player = function (startX, startY, startAngle) {
+var Player = function (startX, startY,socket) {
   var x = startX
   var y = startY
-  var angle = startAngle
   this.speed = 500;
   //We need to intilaize with true.
   this.sendData = true;
-  this.size = getRndInteger(40, 100); 
   this.dead = false;
+  this.socket = socket;
+
+
 }
+
+Player.prototype = 
+{
+	broadcastBody : function()
+	{
+		var player =this;
+		this.socket.broadcast.emit("body_update",{
+
+			"pos":player.position,
+			"id":this.id
+		})
+	}
+}
+
 var foodpickup = function (max_x, max_y, type, id) {
 	this.x = getRndInteger(10, max_x - 10) ;
 	this.y = getRndInteger(10, max_y - 10);
@@ -88,17 +103,25 @@ setInterval(heartbeat, 1000/60);
 
 
 //Steps the physics world. 
-function physics_hanlder() {
+/*function physics_hanlder() {
 	var currentTime = (new Date).getTime();
 	timeElapsed = currentTime - startTime;
 	var dt = lastTime ? (timeElapsed - lastTime) / 1000 : 0;
     dt = Math.min(1 / 10, dt);
     world.step(timeStep);
 }
+*/
+function update_bodies_network()
+{
+	for (var i = player_lst.length - 1; i >= 0; i--) {
+		player_lst[i].broadcastBody();
+	}
+}
 
 function heartbeat () {
 	//physics stepping. We moved this into heartbeat
-	physics_hanlder();
+	//physics_hanlder();
+	update_bodies_network();
 }
 
 
@@ -109,18 +132,15 @@ function heartbeat () {
 function onNewplayer (data) {
 	console.log("new player requested: "+data);
 	//new player instance
-	var newPlayer = new Player(data.x, data.y, data.angle);
-	
+
+	var newPlayer = new Player(data.x, data.y,this);
+	newPlayer.position = [data.x,data.y]
 	//create an instance of player body 
-	playerBody = new p2.Body ({
+	/*playerBody = new p2.Body ({
 		mass: 0,
 		position: [0,0],
 		fixedRotation: true
-	});
-	
-	//add the playerbody into the player object 
-	newPlayer.playerBody = playerBody;
-	world.addBody(newPlayer.playerBody);
+	});*/
 	
 	console.log("created new player with id " + this.id);
 	newPlayer.id = this.id; 	
@@ -131,9 +151,7 @@ function onNewplayer (data) {
 	var current_info = {
 		id: newPlayer.id, 
 		x: newPlayer.x,
-		y: newPlayer.y,
-		angle: newPlayer.angle,
-		size: newPlayer.size
+		y: newPlayer.y
 	}; 
 	
 	//send to the new player about everyone who is already connected. 	
@@ -143,8 +161,6 @@ function onNewplayer (data) {
 			id: existingPlayer.id,
 			x: existingPlayer.x,
 			y: existingPlayer.y, 
-			angle: existingPlayer.angle,	
-			size: existingPlayer.size
 		};
 		console.log("pushing player");
 		//send message to the sender-client only
@@ -164,63 +180,7 @@ function onNewplayer (data) {
 	player_lst.push(newPlayer); 
 }
 
-//instead of listening to player positions, we listen to user inputs 
-function onInputFired (data) {
-	var movePlayer = find_playerid(this.id, this.room); 
-	
-	
-	if (!movePlayer) {
-		return;
-		console.log('no player'); 
-	}
 
-	//when sendData is true, we send the data back to client. 
-	if (!movePlayer.sendData) {
-		return;
-	}
-	
-	//every 50ms, we send the data. 
-	setTimeout(function() {movePlayer.sendData = true}, 50);
-	//we set sendData to false when we send the data. 
-	movePlayer.sendData = false;
-	
-	//Make a new pointer with the new inputs from the client. 
-	//contains player positions in server
-	var serverPointer = {
-		x: data.pointer_x,
-		y: data.pointer_y,
-		worldX: data.pointer_worldx, 		
-		worldY: data.pointer_worldy
-	}
-	
-	//moving the player to the new inputs from the player
-	if (physicsPlayer.distanceToPointer(movePlayer, serverPointer) <= 30) {
-		movePlayer.playerBody.angle = physicsPlayer.movetoPointer(movePlayer, 0, serverPointer, 1000);
-	} else {
-		movePlayer.playerBody.angle = physicsPlayer.movetoPointer(movePlayer, movePlayer.speed, serverPointer);	
-	}
-	
-	//new player position to be sent back to client. 
-	var info = {
-		x: movePlayer.playerBody.position[0],
-		y: movePlayer.playerBody.position[1],
-		angle: movePlayer.playerBody.angle
-	}
-
-	//send to sender (not to every clients). 
-	this.emit('input_recieved', info);
-	
-	//data to be sent back to everyone except sender 
-	var moveplayerData = {
-		id: movePlayer.id, 
-		x: movePlayer.playerBody.position[0],
-		y: movePlayer.playerBody.position[1],
-		angle: movePlayer.playerBody.angle,
-	}
-	
-	//send to everyone except sender 
-	this.broadcast.emit('enemy_move', moveplayerData);
-}
 
 function onPlayerCollision (data) {
 	var movePlayer = find_playerid(this.id); 
@@ -316,6 +276,14 @@ function onClientdisconnect() {
 	
 }
 
+function onBodyPositionReceived(data)
+{
+	var player = find_playerid(this.id,this.room);
+
+	player.position = data.position
+
+}
+
 // find player by the the unique socket id 
 function find_playerid(id) {
 
@@ -339,10 +307,12 @@ io.sockets.on('connection', function(socket){
 	// listen for new player
 	socket.on("new_player", onNewplayer);
 	//listen for new player inputs. 
-	socket.on("input_fired", onInputFired);
+	//socket.on("input_fired", onInputFired);
 	//listen for player collision
 	socket.on("player_collision", onPlayerCollision);
 
 	//listen if player got items 
 	socket.on('item_picked', onitemPicked);
+
+	socket.on('body_position_toserver',onBodyPositionReceived)
 });

@@ -7,8 +7,8 @@ define(["socket.io","collide","helpers","player","item",],function(io,collide) {
 	var socket; // define a global variable called socket 
 
 	socket = io.connect(); // send a connection request to the server
-	
-	this.socket = socket
+
+	//this.socket = socket
 
 	//this is just configuring a screen size to fit the game properly
 	//to the browser
@@ -100,11 +100,18 @@ define(["socket.io","collide","helpers","player","item",],function(io,collide) {
 			//listen to the “connect” message from the server. The server 
 			//automatically emit a “connect” message when the cleint connets.When 
 			//the client connects, call onsocketConnected.  
-			socket.on("connect", onsocketConnected); 
+			if(socket.connected)
+			{
+				onsocketConnected();
+			}else
+			{
+				socket.on("connect", onsocketConnected); 
+			}
+
 
 			//listen for main player creation
-			//socket.on("create_player", createPlayer);
-			createPlayer({x: 780, y: 450, angle: 0});
+			socket.on("create_player", createPlayer);
+			//createPlayer({x: 780, y: 450, angle: 0});
 			//listen to new enemy connections
 			socket.on("new_enemyPlayer", onNewPlayer);
 			//listen to enemy movement 
@@ -113,7 +120,7 @@ define(["socket.io","collide","helpers","player","item",],function(io,collide) {
 			// when received remove_player, remove the player passed; 
 			socket.on('remove_player', onRemovePlayer); 
 			//when the player receives the new input
-			socket.on('input_recieved', onInputRecieved);		
+			//socket.on('input_recieved', onInputRecieved);		
 			//when the player gets killed
 			socket.on('killed', onKilled);
 			//when the player gains in size
@@ -123,6 +130,9 @@ define(["socket.io","collide","helpers","player","item",],function(io,collide) {
 			socket.on ('itemremove', onitemremove); 
 			// check for item update
 			socket.on('item_update', onitemUpdate); 
+
+			socket.on("body_update",onBodyUpdate);
+
 		},
 		update: function () {
 			// emit the player input
@@ -132,7 +142,7 @@ define(["socket.io","collide","helpers","player","item",],function(io,collide) {
 	
 				//we're making a new mouse pointer and sending this input to 
 				//the server.
-				var pointer = game.input.mousePointer;
+				/*var pointer = game.input.mousePointer;
 						
 				//Send a new position data to the server 
 				socket.emit('input_fired', {
@@ -140,7 +150,20 @@ define(["socket.io","collide","helpers","player","item",],function(io,collide) {
 					pointer_y: pointer.y, 
 					pointer_worldx: pointer.worldX, 
 					pointer_worldy: pointer.worldY, 
-				});
+				});*/
+				if(game.localPlayer)
+				{
+					console.log("sending data: "+game.localPlayer.sprite.body.position)
+					//setInterval, ne pas envoyer à chaque frame
+					//envoyer données de vitesse des bodies
+					socket.emit('body_position_toserver',{
+						"position":[
+							game.localPlayer.sprite.position.x,
+							game.localPlayer.sprite.position.y
+						]
+					});	
+				}
+				
 
 			}
 
@@ -199,57 +222,26 @@ define(["socket.io","collide","helpers","player","item",],function(io,collide) {
 
 
 	function createPlayer (data) {
-		console.log("creating player")
+		console.log("creating my local player")
 
 		game.localPlayer = new Player(data);
 
 	}
 
-	// this is the enemy class. 
-	var remote_player = function (id, startx, starty) {
-		this.x = startx;
-		this.y = starty;
-		//this is the unique socket id. We use it as a unique name for enemy
-		this.id = id;
-		
-		this.player = game.add.sprite(startx,starty,'adventurer')
-		//intialize the size with the server value
-		this.player.radius = startSize
-
-		// set a fill and line style
-		this.player.beginFill(0xffd900);
-		this.player.lineStyle(2, 0xffd900, 1);
-		this.player.drawCircle(0, 0, this.player.radius * 2);
-		this.player.endFill();
-		this.player.anchor.setTo(0.5,0.5);
-		//we set the initial size;
-		this.initial_size = startSize;
-		//we set the body size to the current player radius
-		this.player.body_size = this.player.radius; 
-		this.player.type = "player_body";
-		this.player.id = this.id;
-
-		// draw a shape
-		game.physics.p2.enableBody(this.player, true);
-		this.player.body.clearShapes();
-		this.player.body.addCircle(this.player.body_size, 0 , 0); 
-		this.player.body.data.shapes[0].sensor = true;
-	}
 
 	//Server will tell us when a new enemy player connects to the server.
 	//We create a new enemy in our game.
 	function onNewPlayer (data) {
-		console.log(data);
 		//enemy object 
+		console.log("creating an enemy")
 		//the new parameter, data.size is used as initial circle size
-		var new_enemy = new remote_player(data.id, data.x, data.y, data.size, data.angle); 
+		var new_enemy = new Player(data); 
 		enemies.push(new_enemy);
 	}
 
 	//Server tells us there is a new enemy movement. We find the moved enemy
 	//and sync the enemy movement with the server
 	function onEnemyMove (data) {
-		console.log("moving enemy");
 		
 		var movePlayer = findplayerbyid (data.id); 
 		
@@ -264,20 +256,6 @@ define(["socket.io","collide","helpers","player","item",],function(io,collide) {
 			worldY: data.y, 
 		}
 
-		//check if the server enemy size is not equivalent to the client
-		if (data.size != movePlayer.player.body_size) {
-			movePlayer.player.body_size = data.size; 
-			var new_scale = movePlayer.player.body_size / movePlayer.initial_size; 
-			movePlayer.player.scale.set(new_scale);
-			movePlayer.player.body.clearShapes();
-			movePlayer.player.body.addCircle(movePlayer.player.body_size, 0 , 0); 
-			movePlayer.player.body.data.shapes[0].sensor = true;
-		}
-			
-		var distance = distanceToPointer(movePlayer.player, newPointer);
-		speed = distance/0.05;
-		
-		movePlayer.rotation = movetoPointer(movePlayer.player, speed, newPointer);
 	}
 
 	//we're receiving the calculated position from the server and changing the player position
@@ -293,6 +271,14 @@ define(["socket.io","collide","helpers","player","item",],function(io,collide) {
 			game.localPlayer.inputReceived(data);
 		}
 
+	}
+
+	function onBodyUpdate(data)
+	{
+		//console.log(data)
+		var player = findplayerbyid(data.id);
+		player.sprite.body.x = data.pos[0]
+		player.sprite.body.y = data.pos[1]
 	}
 
 	//new function: This function is called when the player eats another player
