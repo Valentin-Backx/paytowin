@@ -116,7 +116,7 @@ define(["socket.io","collide","helpers","player","item",],function(io,collide) {
 			// when received remove_player, remove the player passed; 
 			socket.on('remove_player', onRemovePlayer); 
 			//when the player receives the new input
-			//socket.on('input_recieved', onInputRecieved);		
+			//socket.on('input_recieved', onInputRecieved);
 			//when the player gets killed
 			socket.on('killed', onKilled);
 
@@ -126,6 +126,8 @@ define(["socket.io","collide","helpers","player","item",],function(io,collide) {
 			socket.on('item_update', onitemUpdate); 
 
 			socket.on("body_update",onBodyUpdate);
+
+			socket.on("start_enemy_animation",onOtherPlayerAnim)
 
 		},
 		update: function () {
@@ -200,9 +202,8 @@ define(["socket.io","collide","helpers","player","item",],function(io,collide) {
 			        game.camera.x += 4;
 			    }				
 			}
-		},
-
-		render : function()
+		}
+		,render : function()
 		{
 			//game.debug.cameraInfo(game.camera,32,32)
 			//game.debug.bodyInfo(game.localPlayer.sprite, 32, 32);
@@ -225,6 +226,7 @@ define(["socket.io","collide","helpers","player","item",],function(io,collide) {
 		console.log("creating my local player")
 
 		game.localPlayer = new Player(data,true);
+		game.localPlayer.startNewAnim=onSendAnim;
 
 	}
 
@@ -242,6 +244,11 @@ define(["socket.io","collide","helpers","player","item",],function(io,collide) {
 		//the new parameter, data.size is used as initial circle size
 		var new_enemy = new Player(data); 
 		game.enemies.push(new_enemy);
+	}
+
+	function onSendAnim(data)
+	{
+		socket.emit("start_animation",data);
 	}
 
 	//Server tells us there is a new enemy movement. We find the moved enemy
@@ -276,6 +283,13 @@ define(["socket.io","collide","helpers","player","item",],function(io,collide) {
 			game.localPlayer.inputReceived(data);
 		}
 
+	}
+
+	function onOtherPlayerAnim(data)
+	{
+		var player = findplayerbyid(data.id);
+
+		player.startAnim(data.data);
 	}
 
 	function onBodyUpdate(data)

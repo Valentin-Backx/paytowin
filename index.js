@@ -130,8 +130,6 @@ function heartbeat () {
 // when a new player connects, we make a new instance of the player object,
 // and send a new player message to the client. 
 function onNewplayer (data) {
-	console.log("new player requested: "+data);
-	//new player instance
 
 	var newPlayer = new Player(data.x, data.y,this);
 	newPlayer.position = [data.x,data.y]
@@ -173,7 +171,6 @@ function onNewplayer (data) {
 		this.emit('item_update', food_pick); 
 	}
 
-	console.log(newPlayer)
 	//send message to every connected client except the sender
 	this.broadcast.emit('new_enemyPlayer', current_info);
 	
@@ -234,7 +231,6 @@ function onitemPicked (data) {
 
 	var object = find_food(data.id);	
 	if (!object) {
-		console.log(data);
 		console.log("could not find object");
 		return;
 	}
@@ -296,6 +292,12 @@ function find_playerid(id) {
 	return false; 
 }
 
+function onPlayerStartAnimation(data)
+{
+	//send message to every connected client except the sender
+	this.broadcast.emit('start_enemy_animation', {id: this.id,data:data});
+}
+
 // listen for a connection request from any client
 io.sockets.on('connection', function(socket){
 	console.log("socket connected"); 
@@ -313,5 +315,7 @@ io.sockets.on('connection', function(socket){
 	//listen if player got items 
 	socket.on('item_picked', onitemPicked);
 
-	socket.on('body_position_toserver',onBodyPositionReceived)
+	socket.on('body_position_toserver',onBodyPositionReceived);
+
+	socket.on('start_animation',onPlayerStartAnimation);
 });

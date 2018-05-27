@@ -46,6 +46,8 @@ function Player(data,local)
 
 	
 	//console.log(this.sprite.getAnimation('jump')._anims)
+
+	this.startNewAnim = function(){};
 }
 
 Player.prototype = 
@@ -63,6 +65,8 @@ Player.prototype =
 			this.onJumpVelocity = this.sprite.body.velocity.y;
 			this.sprite.body.velocity.y = -650
 			this.sprite.animations.play('jump');
+
+			this.startNewAnim({'animation_name':'jump'})
 		}
 		if(data.down)
 		{
@@ -74,6 +78,7 @@ Player.prototype =
 			if(this.grounded)
 			{
 				this.sprite.animations.play('walk');
+				this.startNewAnim({'animation_name':'walk'})
 				this.sprite.body.velocity.x = -this.playerVelocity;
 			}else
 			{
@@ -88,6 +93,7 @@ Player.prototype =
 			{
 				this.sprite.body.velocity.x = this.playerVelocity;
 				this.sprite.animations.play('walk')
+				this.startNewAnim({'animation_name':'walk'})
 			}else
 			{
 				this.sprite.body.force.x =this.airControlForce;
@@ -97,6 +103,7 @@ Player.prototype =
 		if(this.grounded&&!(data.right||data.left||data.up)&&this.sprite.animations.currentAnim.name!='idle')
 		{
 			this.sprite.animations.play('idle')
+			this.startNewAnim({'animation_name':'idle'})
 		}
 	},
 	hitPlatform : function()
@@ -131,6 +138,14 @@ Player.prototype =
 
 			var resultingPosition = Phaser.Point.interpolate(previousPosition,positionTarget,rate);
 			this.sprite.position = resultingPosition;
+
+			if(resultingPosition.x < previousPosition.x)
+			{
+				this.sprite.scale.x = -1 * this.scaleBase
+			}else
+			{
+				this.sprite.scale.x = this.scaleBase
+			}
 		}
 
 /*		if(this.lastReceivedData){
@@ -144,5 +159,9 @@ Player.prototype =
 
 				//var vector = Phaser.Point.subtract(positionTarget,previousPos);
 
+	},
+	startAnim : function(animData)
+	{
+		this.sprite.animations.play(animData.animation_name);
 	}
 }
