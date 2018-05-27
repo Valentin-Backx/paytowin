@@ -82,7 +82,7 @@ Player.prototype =
 	{
 		var player =this;
 		this.socket.broadcast.emit("body_update",{
-
+			"velocity":player.velocity,
 			"pos":player.position,
 			"id":this.id
 		})
@@ -150,8 +150,8 @@ function onNewplayer (data) {
 	//information to be sent to all clients except sender
 	var current_info = {
 		id: newPlayer.id, 
-		x: newPlayer.x,
-		y: newPlayer.y
+		x: newPlayer.position[0],
+		y: newPlayer.position[1]
 	}; 
 	
 	//send to the new player about everyone who is already connected. 	
@@ -159,10 +159,10 @@ function onNewplayer (data) {
 		existingPlayer = player_lst[i];
 		var player_info = {
 			id: existingPlayer.id,
-			x: existingPlayer.x,
-			y: existingPlayer.y, 
+			x: existingPlayer.position[0],
+			y: existingPlayer.position[1], 
 		};
-		console.log("pushing player");
+		console.log("pushing other players ");
 		//send message to the sender-client only
 		this.emit("new_enemyPlayer", player_info);
 	}
@@ -173,10 +173,10 @@ function onNewplayer (data) {
 		this.emit('item_update', food_pick); 
 	}
 
+	console.log(newPlayer)
 	//send message to every connected client except the sender
 	this.broadcast.emit('new_enemyPlayer', current_info);
 	
-
 	player_lst.push(newPlayer); 
 }
 
@@ -279,9 +279,8 @@ function onClientdisconnect() {
 function onBodyPositionReceived(data)
 {
 	var player = find_playerid(this.id,this.room);
-
-	player.position = data.position
-
+	player.position = data.position;
+	player.velocity = data.velocity;
 }
 
 // find player by the the unique socket id 

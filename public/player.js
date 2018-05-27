@@ -1,4 +1,4 @@
-function Player(data)
+function Player(data,local)
 {
 	this.id = data.id;
 	this.scaleBase = 2;
@@ -20,14 +20,22 @@ function Player(data)
 	this.sprite.animations.play('idle')
 
 
+	if(local)
+	{
+		game.physics.p2.enable(this.sprite);
+		
+		this.sprite.body.setRectangle(50,64,0,5,0);
 
-	game.physics.p2.enable(this.sprite);
-	
-	this.sprite.body.setRectangle(50,64,0,5,0);
+		this.sprite.body.setCollisionGroup(game.playerCollisionGroup)
+		this.sprite.body.collides(game.tilesCollisionGroup,this.hitPlatform,this);
+		this.sprite.body.fixedRotation = true;	
+	}else
 
-	this.sprite.body.setCollisionGroup(game.playerCollisionGroup)
-	this.sprite.body.collides(game.tilesCollisionGroup,this.hitPlatform,this);
-	this.sprite.body.fixedRotation = true;
+	{
+		this.snapshots = [];
+		this.sprite.pivot.set(25,19)
+		this.interpolationTime = 30;
+	}
 	//this.sprite.body.debug = true;
 	this.grounded = false;
 	this.onJumpVelocity=0;
@@ -94,5 +102,47 @@ Player.prototype =
 	hitPlatform : function()
 	{
 		this.grounded = true;
+	},
+	pushData : function(data)
+	{
+		data.time = game.time.now;
+		this.snapshots.push(data);
+
+		var index = this.snapshots.length-1;
+		for (var i = this.snapshots.length - 1; i >= 0; i--) {
+			if(this.snapshots[i].time < game.time.now - this.interpolationTime)
+			{
+				index = i;
+				break;
+			}
+		}
+		//on enleve tous les snapshots antérieurs
+		this.snapshots.splice(0,index);
+
+	},
+	update : function()
+	{
+		if(this.snapshots.length>=2)
+		{
+			var positionTarget = new Phaser.Point(this.snapshots[1].position[0],this.snapshots[1].position[1]);
+			var previousPosition = new Phaser.Point(this.snapshots[0].position[0],this.snapshots[0].position[1]);
+
+			var rate =  ((game.time.now-this.interpolationTime) - this.snapshots[0].time) / (this.snapshots[1].time - this.snapshots[0].time);
+
+			var resultingPosition = Phaser.Point.interpolate(previousPosition,positionTarget,rate);
+			this.sprite.position = resultingPosition;
+		}
+
+/*		if(this.lastReceivedData){
+			
+			var positionTarget = new Phaser.Point(this.lastReceivedData.position[0],this.lastReceivedData.position[1]);
+			
+			if(this.previousData)
+			{
+				//var previousPos = new Phaser.Point(this.previousData.position[0],this.previousData.position[1]);
+				/*var velocity = new Phaser.Point(this.lastReceivedData.velocity.x,this.lastReceivedData.velocity.y).getMagnitude();*/
+
+				//var vector = Phaser.Point.subtract(positionTarget,previousPos);
+
 	}
 }

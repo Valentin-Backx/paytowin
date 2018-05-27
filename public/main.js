@@ -19,7 +19,7 @@ define(["socket.io","collide","helpers","player","item",],function(io,collide) {
 	game = new Phaser.Game(canvas_width,canvas_height, Phaser.CANVAS,'gameDiv');
 
 	//the enemy player list 
-	var enemies = [];
+	game.enemies = [];
 
 	 var gameProperties = { 
 		//this is the actual game size to determine the boundary of 
@@ -65,14 +65,10 @@ define(["socket.io","collide","helpers","player","item",],function(io,collide) {
 				50,
 				37,
 				85
-				)
-
-
+			)
 
 			game.tilesCollisionGroup = game.physics.p2.createCollisionGroup();
 			game.playerCollisionGroup = game.physics.p2.createCollisionGroup();
-
-
 	    },
 		//this function is fired once when we load the game
 		create: function () {
@@ -123,8 +119,6 @@ define(["socket.io","collide","helpers","player","item",],function(io,collide) {
 			//socket.on('input_recieved', onInputRecieved);		
 			//when the player gets killed
 			socket.on('killed', onKilled);
-			//when the player gains in size
-			socket.on('gained', onGained);
 
 			// check for item removal
 			socket.on ('itemremove', onitemremove); 
@@ -153,15 +147,21 @@ define(["socket.io","collide","helpers","player","item",],function(io,collide) {
 				});*/
 				if(game.localPlayer)
 				{
-					console.log("sending data: "+game.localPlayer.sprite.body.position)
 					//setInterval, ne pas envoyer à chaque frame
 					//envoyer données de vitesse des bodies
 					socket.emit('body_position_toserver',{
 						"position":[
 							game.localPlayer.sprite.position.x,
 							game.localPlayer.sprite.position.y
-						]
+						],
+						"velocity":{
+							"x":game.localPlayer.sprite.body.velocity.x,
+							"y":game.localPlayer.sprite.body.velocity.y
+						}
 					});	
+				}
+				for (var i = game.enemies.length - 1; i >= 0; i--) {
+					game.enemies[i].update();
 				}
 				
 
@@ -224,7 +224,7 @@ define(["socket.io","collide","helpers","player","item",],function(io,collide) {
 	function createPlayer (data) {
 		console.log("creating my local player")
 
-		game.localPlayer = new Player(data);
+		game.localPlayer = new Player(data,true);
 
 	}
 
@@ -232,11 +232,16 @@ define(["socket.io","collide","helpers","player","item",],function(io,collide) {
 	//Server will tell us when a new enemy player connects to the server.
 	//We create a new enemy in our game.
 	function onNewPlayer (data) {
+		if(findplayerbyid(data.id))
+		{
+			console.log("attempting to create an already existing player")
+			return;
+		}
 		//enemy object 
 		console.log("creating an enemy")
 		//the new parameter, data.size is used as initial circle size
 		var new_enemy = new Player(data); 
-		enemies.push(new_enemy);
+		game.enemies.push(new_enemy);
 	}
 
 	//Server tells us there is a new enemy movement. We find the moved enemy
@@ -277,22 +282,22 @@ define(["socket.io","collide","helpers","player","item",],function(io,collide) {
 	{
 		//console.log(data)
 		var player = findplayerbyid(data.id);
-		player.sprite.body.x = data.pos[0]
-		player.sprite.body.y = data.pos[1]
-	}
+		if(!player)
+		{
+			return;
+		}
 
-	//new function: This function is called when the player eats another player
-	function onGained (data) {
-		//get the new body size from the server
-		player.body_size = data.new_size;
-		//get the new scale 
-		var new_scale = data.new_size/player.initial_size;
-		//set the new scale
-		player.scale.set(new_scale);
-		//create new circle body with the raidus of our player size
-		player.body.clearShapes();
-		player.body.addCircle(player.body_size, 0 , 0); 
-		player.body.data.shapes[0].sensor = true;
+		if(!data.velocity)
+		{
+			data.velocity={x:0,y:0}
+		}
+		player.pushData({
+			'position':data.pos,
+			'velocity':data.velocity
+		})
+
+		//player.sprite.body.x = data.pos[0];
+		//player.sprite.body.y = data.pos[1];
 	}
 
 	//destroy our player when the server tells us he's dead
@@ -303,9 +308,9 @@ define(["socket.io","collide","helpers","player","item",],function(io,collide) {
 	//This is where we use the socket id. 
 	//Search through enemies list to find the right enemy of the id.
 	function findplayerbyid (id) {
-		for (var i = 0; i < enemies.length; i++) {
-			if (enemies[i].id == id) {
-				return enemies[i]; 
+		for (var i = 0; i < game.enemies.length; i++) {
+			if (game.enemies[i].id == id) {
+				return game.enemies[i]; 
 			}
 		}
 	}
@@ -334,7 +339,7 @@ define(["socket.io","collide","helpers","player","item",],function(io,collide) {
 		}
 		
 		removePlayer.player.destroy();
-		enemies.splice(enemies.indexOf(removePlayer), 1);
+		game.enemies.splice(game.enemies.indexOf(removePlayer), 1);
 	}
 
 	return {
