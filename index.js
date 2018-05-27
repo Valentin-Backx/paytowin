@@ -72,8 +72,6 @@ var Player = function (startX, startY,socket) {
   this.sendData = true;
   this.dead = false;
   this.socket = socket;
-
-
 }
 
 Player.prototype = 

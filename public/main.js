@@ -178,7 +178,9 @@ define(["socket.io","collide","helpers","player","item",],function(io,collide) {
 					"up":cursors.up.isDown,
 					"down":cursors.down.isDown,
 					"left":cursors.left.isDown,
-					"right":cursors.right.isDown
+					"right":cursors.right.isDown,
+					"simple_strike":game.input.keyboard.isDown(Phaser.Keyboard.A),
+					"double_strike":game.input.keyboard.isDown(Phaser.Keyboard.Z)
 				}
 				game.localPlayer.inputReceived(inputs);
 

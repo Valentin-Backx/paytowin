@@ -15,7 +15,12 @@ function Player(data,local)
 
 	this.sprite.animations.add('idle',[0,1,2,3],6,true);
 
-	this.sprite.animations.add('jump',[16,17,18,19,20,21,22,23],16,false);
+	this.sprite.animations.add('jump',[16,17,18,19,20,21],16,false);
+
+	this.sprite.animations.add('single_strike',[41,42,43,44,45,46,47],20,false)
+	this.sprite.animations.add('double_strike',[48,49,50,51,52,53,54,55,56,57,58],10,false)
+
+	this.sprite.animations.add('fall',[22,23],6,true);
 
 	this.sprite.animations.play('idle')
 
@@ -48,15 +53,39 @@ function Player(data,local)
 	//console.log(this.sprite.getAnimation('jump')._anims)
 
 	this.startNewAnim = function(){};
+	this.simple_atk_released=true;
+	this.double_atk_released=true;
 }
 
 Player.prototype = 
 {
 	inputReceived : function(data)
 	{
+		if(!data.simple_strike)
+		{
+			this.simple_atk_released=true;
+		}
+		if(!data.double_strike)
+		{
+			this.double_atk_released=true;
+		}
 		if(!data.up)
 		{
 			this.jumpReleased = true;
+		}
+		if(this.attacking)
+		{
+
+			if(
+				this.currentAnimIsAttack()&&
+				game.localPlayer.sprite.animations.currentAnim._frameIndex
+				==
+				game.localPlayer.sprite.animations.currentAnim.frameTotal-1
+			)
+			{
+				this.attacking = false;
+			}
+			return;
 		}
 		if(data.up&&this.grounded&&this.jumpReleased)
 		{
@@ -84,6 +113,7 @@ Player.prototype =
 			{
 				this.sprite.body.force.x = -this.airControlForce;
 				this.sprite.body.velocity.x = helpers.clamp(this.sprite.body.velocity.x,-this.playerVelocity,this.playerVelocity);
+
 			}
 		}
 		if(data.right)
@@ -98,12 +128,37 @@ Player.prototype =
 			{
 				this.sprite.body.force.x =this.airControlForce;
 				this.sprite.body.velocity.x = helpers.clamp(this.sprite.body.velocity.x,-this.playerVelocity,this.playerVelocity);
+
 			}
 		}
-		if(this.grounded&&!(data.right||data.left||data.up)&&this.sprite.animations.currentAnim.name!='idle')
+		if(data.simple_strike&&this.simple_atk_released)
+		{
+			this.simple_atk_released=false;
+			this.sprite.animations.play('single_strike');
+			this.startNewAnim({'animation_name':'single_strike'})
+			this.attacking = true;
+		}
+		if(data.double_strike&&this.double_atk_released)
+		{
+			this.double_atk_released=false;
+			this.sprite.animations.play('double_strike');
+			this.startNewAnim({'animation_name':"double_strike"});
+			this.attacking=true;
+		}
+		if(this.grounded&&!(data.right||data.left||data.up||data.simple_strike||data.double_strike)&&this.sprite.animations.currentAnim.name!='idle')
 		{
 			this.sprite.animations.play('idle')
 			this.startNewAnim({'animation_name':'idle'})
+		}
+
+		if(!this.grounded&&!(/*data.right||data.left||data.up||*/data.simple_strike||data.double_strike)&&this.sprite.animations.currentAnim.name!='fall')
+		{
+			if(this.sprite.animations.currentAnim.name=="jump"&&game.localPlayer.sprite.animations.currentAnim._frameIndex<game.localPlayer.sprite.animations.currentAnim.frameTotal-1)
+			{
+				return;
+			}
+			this.sprite.animations.play('fall')
+			this.startNewAnim({'animation_name':'fall'})
 		}
 	},
 	hitPlatform : function()
@@ -163,5 +218,9 @@ Player.prototype =
 	startAnim : function(animData)
 	{
 		this.sprite.animations.play(animData.animation_name);
+	},
+	currentAnimIsAttack : function()
+	{
+		return ["single_strike","double_strike"].includes(this.sprite.animations.currentAnim.name);
 	}
 }
