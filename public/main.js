@@ -3,7 +3,7 @@
 	console.log(s)
 })*/
 
-define(["socket.io","collide","helpers","player","item",],function(io,collide) {
+define(["socket.io","collide","helpers","player","item"],function(io,collide) {
 	var socket; // define a global variable called socket 
 
 	socket = io.connect(); // send a connection request to the server
@@ -229,7 +229,31 @@ define(["socket.io","collide","helpers","player","item",],function(io,collide) {
 
 		game.localPlayer = new Player(data,true);
 		game.localPlayer.startNewAnim=onSendAnim;
+		game.localPlayer.damageFrameReached=checkHitBoxes;
 
+	}
+
+	function checkHitBoxes(r,atkObj)
+	{
+		console.log("checking hit boxes")
+		var hit=[];
+		for (var i = game.enemies.length - 1; i >= 0; i--) {
+				if(r.intersects(game.enemies[i].sprite.getBounds()))
+				{
+					hit.push(game.enemies[i].id);
+				}
+			}
+		socket.emit("hit_player",{"hit":hit,"damage":atkObj.baseAtkPower});
+
+		//context== player?
+		if(hit.length >0)
+		{
+			this.playHitSound();	
+		}
+		/*if(r.intersects(simu.getBounds()))
+        {
+            simu.damage(atkObj.baseAtkPower,r);
+        }*/
 	}
 
 

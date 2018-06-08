@@ -41,6 +41,7 @@ var food_lst = []
 var startTime = (new Date).getTime();
 var lastTime;
 var timeStep= 1/70; 
+var Player = require('./PlayerServer');
 
 //the physics world in the server. This is where all the physics happens. 
 //we set gravity to 0 since we are just following mouse pointers.
@@ -63,29 +64,7 @@ var game_setup = function() {
 // createa a new game instance
 var game_instance = new game_setup();
 
-// A player “class”, which will be stored inside player list 
-var Player = function (startX, startY,socket) {
-  var x = startX
-  var y = startY
-  this.speed = 500;
-  //We need to intilaize with true.
-  this.sendData = true;
-  this.dead = false;
-  this.socket = socket;
-}
 
-Player.prototype = 
-{
-	broadcastBody : function()
-	{
-		var player =this;
-		this.socket.broadcast.emit("body_update",{
-			"velocity":player.velocity,
-			"pos":player.position,
-			"id":this.id
-		})
-	}
-}
 
 var foodpickup = function (max_x, max_y, type, id) {
 	this.x = getRndInteger(10, max_x - 10) ;
@@ -129,8 +108,8 @@ function heartbeat () {
 // and send a new player message to the client. 
 function onNewplayer (data) {
 
-	var newPlayer = new Player(data.x, data.y,this);
-	newPlayer.position = [data.x,data.y]
+	var newPlayer = new Player(data.x, data.y,this,data);
+	
 	//create an instance of player body 
 	/*playerBody = new p2.Body ({
 		mass: 0,
@@ -277,6 +256,11 @@ function onBodyPositionReceived(data)
 	player.velocity = data.velocity;
 }
 
+function onPlayerHit(data)
+{
+
+}
+
 // find player by the the unique socket id 
 function find_playerid(id) {
 
@@ -316,4 +300,6 @@ io.sockets.on('connection', function(socket){
 	socket.on('body_position_toserver',onBodyPositionReceived);
 
 	socket.on('start_animation',onPlayerStartAnimation);
+
+	socket.on('hit_player',onPlayerHit);
 });

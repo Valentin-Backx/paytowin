@@ -1,3 +1,6 @@
+var Attacks = requirejs(['Attacks'])
+var soundManager = requirejs(['SoundManager'])
+console.log(soundManager)
 function Player(data,local)
 {
 	this.id = data.id;
@@ -22,7 +25,7 @@ function Player(data,local)
 
 	this.sprite.animations.add('fall',[22,23],6,true);
 
-	this.sprite.animations.play('idle')
+	this.sprite.animations.play('idle');
 
 
 	if(local)
@@ -33,7 +36,7 @@ function Player(data,local)
 
 		this.sprite.body.setCollisionGroup(game.playerCollisionGroup)
 		this.sprite.body.collides(game.tilesCollisionGroup,this.hitPlatform,this);
-		this.sprite.body.fixedRotation = true;	
+		this.sprite.body.fixedRotation = true;
 	}else
 
 	{
@@ -53,6 +56,7 @@ function Player(data,local)
 	//console.log(this.sprite.getAnimation('jump')._anims)
 
 	this.startNewAnim = function(){};
+	this.damageFrameReached = function(){};
 	this.simple_atk_released=true;
 	this.double_atk_released=true;
 }
@@ -75,6 +79,7 @@ Player.prototype =
 		}
 		if(this.attacking)
 		{
+			this.checkHitFrame();
 
 			if(
 				this.currentAnimIsAttack()&&
@@ -137,6 +142,9 @@ Player.prototype =
 			this.sprite.animations.play('single_strike');
 			this.startNewAnim({'animation_name':'single_strike'})
 			this.attacking = true;
+			this.currentAttack={
+				"attackObj":attacksFrameInfos["single-strike"].resetAttack()
+			};
 		}
 		if(data.double_strike&&this.double_atk_released)
 		{
@@ -144,6 +152,9 @@ Player.prototype =
 			this.sprite.animations.play('double_strike');
 			this.startNewAnim({'animation_name':"double_strike"});
 			this.attacking=true;
+			this.currentAttack={
+				"attackObj":attacksFrameInfos["double-strike"].resetAttack()
+			};
 		}
 		if(this.grounded&&!(data.right||data.left||data.up||data.simple_strike||data.double_strike)&&this.sprite.animations.currentAnim.name!='idle')
 		{
@@ -222,5 +233,38 @@ Player.prototype =
 	currentAnimIsAttack : function()
 	{
 		return ["single_strike","double_strike"].includes(this.sprite.animations.currentAnim.name);
+	},
+	checkHitFrame : function()
+	{
+        var atkObj = this.currentAttack.attackObj;
+        if(atkObj.hitFrame.includes(this.sprite.animations.currentAnim._frameIndex)/*&&!this.sprite.animations.currentAnim.attackHit*/)
+        {   
+        	var indexHit = this.sprite.animations.currentAnim._frameIndex
+        	if(!atkObj.burnHit(indexHit))
+        	{
+        		return;
+        	}
+
+        	var hitRect = atkObj.hitPosition[atkObj.hitFrame.indexOf(indexHit)]
+            
+            var r = new Phaser.Rectangle(
+                this.sprite.x+this.getSens() * hitRect.x - (this.getSens()<=0?hitRect.w:0),
+                this.sprite.y+hitRect.y,
+                hitRect.w,hitRect.h
+            );
+
+            this.sprite.hit = r;
+
+            //this.sprite.animations.currentAnim.attackHit=true;
+            this.damageFrameReached(r,atkObj);
+        }	
+	},
+	getSens : function()
+	{
+		return Math.sign(this.sprite.scale.x)
+	},
+	playHitSound : function()
+	{
+        soundManager.playHitSound();
 	}
 }
