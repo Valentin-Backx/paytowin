@@ -17,13 +17,40 @@ var Player = function (startX, startY,socket,initParams) {
   }
   if(!this.parameters.armor)
   {
-  	this.armor = 0
+  	this.parameters.armor = 0
   }
+  this.armor = this.parameters.armor;
+  this.health = this.parameters.health;
 }
 
-Player.prototype = 
-{
-	broadcastBody : function()
+Player.prototype.damage = function(dmg,attacker) {
+  dmg-=this.armor;
+  dmg = Math.max(0,dmg);
+
+  this.health-=dmg;
+
+  if(this.health<0)
+  {
+    this.death(attacker);
+  }
+  this.socket.emit("suffer_damage",{dmgAmount:dmg})
+};
+
+Player.prototype.death = function(attacker) {
+  this.socket.emit("killed",{enemyId:attacker});
+  this.socket.broadcast.emit("player_killed",{killedPlayer:this.id,killerId:attacker});
+
+  setTimeout(this.respawn.bind(this),4000);
+};
+
+Player.prototype.respawn = function() {
+  this.position = [this.parameters.x,this.parameters.y]
+  this.health = this.parameters.health
+  this.socket.emit("player_respawn",{position:this.position,health:this.health});
+};
+
+
+Player.prototype.broadcastBody = function()
 	{
 		var player =this;
 		this.socket.broadcast.emit("body_update",{
@@ -32,6 +59,5 @@ Player.prototype =
 			"id":this.id
 		})
 	}
-}
 
 module.exports = Player;

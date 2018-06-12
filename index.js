@@ -118,15 +118,20 @@ function onNewplayer (data) {
 	});*/
 	
 	console.log("created new player with id " + this.id);
-	newPlayer.id = this.id; 	
-	
-	this.emit('create_player', {x:data.x,y:data.y,size: newPlayer.size});
+	newPlayer.id = this.id;
+
+	this.emit('create_player', {
+		x:data.x,
+		y:data.y,
+		health:newPlayer.health
+	});
 	
 	//information to be sent to all clients except sender
 	var current_info = {
 		id: newPlayer.id, 
 		x: newPlayer.position[0],
-		y: newPlayer.position[1]
+		y: newPlayer.position[1],
+		health:newPlayer.health
 	}; 
 	
 	//send to the new player about everyone who is already connected. 	
@@ -135,7 +140,8 @@ function onNewplayer (data) {
 		var player_info = {
 			id: existingPlayer.id,
 			x: existingPlayer.position[0],
-			y: existingPlayer.position[1], 
+			y: existingPlayer.position[1],
+			health: existingPlayer.health
 		};
 		console.log("pushing other players ");
 		//send message to the sender-client only
@@ -258,7 +264,9 @@ function onBodyPositionReceived(data)
 
 function onPlayerHit(data)
 {
-
+	for (var i = data.hit.length - 1; i >= 0; i--) {
+		find_playerid(data.hit[i]).damage(data.damage,this.id);
+	}
 }
 
 // find player by the the unique socket id 

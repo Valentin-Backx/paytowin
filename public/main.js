@@ -36,6 +36,7 @@ define(["socket.io","collide","helpers","player","item"],function(io,collide) {
 	var map;
 	var cursors;
 	var jumpButton;
+	var debugGeoms=[];
 	// add the 
 	main.prototype = {
 		preload: function() {
@@ -129,6 +130,11 @@ define(["socket.io","collide","helpers","player","item"],function(io,collide) {
 
 			socket.on("start_enemy_animation",onOtherPlayerAnim)
 
+			socket.on('suffer_damage',onSufferDamage);
+			socket.on('killed',onKilled);
+			socket.on('player_killed',onPlayerKilled);
+			socket.on("player_respawn",onRespawn);
+
 		},
 		update: function () {
 			// emit the player input
@@ -207,9 +213,22 @@ define(["socket.io","collide","helpers","player","item"],function(io,collide) {
 		}
 		,render : function()
 		{
-			//game.debug.cameraInfo(game.camera,32,32)
-			//game.debug.bodyInfo(game.localPlayer.sprite, 32, 32);
-        	//game.debug.body(game.localPlayer.sprite);
+		/*
+			for (var i = debugGeoms.length - 1; i >= 0; i--) {
+				game.debug.geom(debugGeoms[i],'rgba(255,0,0,1)')
+			}*/
+
+			for (var i = game.enemies.length - 1; i >= 0; i--) {
+				//game.debug.geom(game.enemies[i].sprite.getBounds(),'rgba(0,255,0,1)');
+				game.debug.spriteBounds(game.enemies[i].sprite);
+			}
+
+			/*
+			for (var i = game.enemies.length - 1; i >= 0; i--) {
+				game.debug.spriteInfo(game.enemies[i].sprite, 32, 32);
+			}
+			game.debug.pointer( game.input.activePointer );*/
+
 		}
 	}
 
@@ -233,27 +252,45 @@ define(["socket.io","collide","helpers","player","item"],function(io,collide) {
 
 	}
 
+	function onSufferDamage(data)
+	{
+		game.localPlayer.damage(data.dmgAmount);
+	}
+
+	function onKilled(data)
+	{
+		game.localPlayer.killed();
+	}
+
+	function onRespawn(data)
+	{
+		game.localPlayer.reset(data.position)
+	}
+
+	function onPlayerKilled(data)
+	{
+
+	}
+
 	function checkHitBoxes(r,atkObj)
 	{
-		console.log("checking hit boxes")
+		debugGeoms.push(r);		
 		var hit=[];
 		for (var i = game.enemies.length - 1; i >= 0; i--) {
-				if(r.intersects(game.enemies[i].sprite.getBounds()))
+				//game.enemies[i].sprite.getBounds();
+				if(Phaser.Rectangle.intersects(r,game.enemies[i].sprite._bounds))
 				{
 					hit.push(game.enemies[i].id);
 				}
 			}
-		socket.emit("hit_player",{"hit":hit,"damage":atkObj.baseAtkPower});
-
-		//context== player?
-		if(hit.length >0)
+		if(hit.length>0)
 		{
-			this.playHitSound();	
+
+			socket.emit("hit_player",{"hit":hit,"damage":atkObj.baseAtkPower});
+	
+			//context== player?
+			//this.playHitSound();	
 		}
-		/*if(r.intersects(simu.getBounds()))
-        {
-            simu.damage(atkObj.baseAtkPower,r);
-        }*/
 	}
 
 
@@ -340,10 +377,6 @@ define(["socket.io","collide","helpers","player","item"],function(io,collide) {
 		//player.sprite.body.y = data.pos[1];
 	}
 
-	//destroy our player when the server tells us he's dead
-	function onKilled (data) {
-		player.destroy();
-	}
 
 	//This is where we use the socket id. 
 	//Search through enemies list to find the right enemy of the id.

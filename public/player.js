@@ -1,6 +1,11 @@
 var Attacks = requirejs(['Attacks'])
 var soundManager = requirejs(['SoundManager'])
-console.log(soundManager)
+var HealthBar;
+
+require(['HealthBar'], function (hb) {
+    HealthBar=hb
+});
+
 function Player(data,local)
 {
 	this.id = data.id;
@@ -11,6 +16,16 @@ function Player(data,local)
 	this.airControlForce= 1000;
 	
 	this.sprite = game.add.sprite(data.x,data.y,'adventurer')
+
+	if(data.health)
+	{
+		this.health = data.health;
+	}else
+	{
+		this.health = 100
+	}
+
+	this.initHealth = this.health;
 	
 	this.sprite.scale.set(this.scaleBase)
 
@@ -25,11 +40,14 @@ function Player(data,local)
 
 	this.sprite.animations.add('fall',[22,23],6,true);
 
+	this.sprite.animations.add('death',[62,63,64,65,66],10,false)
+
 	this.sprite.animations.play('idle');
 
 
 	if(local)
 	{
+		this.local=true;
 		game.physics.p2.enable(this.sprite);
 		
 		this.sprite.body.setRectangle(50,64,0,5,0);
@@ -37,6 +55,17 @@ function Player(data,local)
 		this.sprite.body.setCollisionGroup(game.playerCollisionGroup)
 		this.sprite.body.collides(game.tilesCollisionGroup,this.hitPlatform,this);
 		this.sprite.body.fixedRotation = true;
+
+		this.canControl=true;
+
+		 this.myHealthBar = new HealthBar(game, {
+			 	x: (game.camera.width/4)*3+(game.camera.width/8)-50,
+			 	y: 50,
+			 	width: game.camera.width/4,
+			 	height: 25
+		 	});
+		  this.myHealthBar.setPercent(100); 
+		  this.myHealthBar.setFixedToCamera(true);
 	}else
 
 	{
@@ -48,6 +77,7 @@ function Player(data,local)
 	this.grounded = false;
 	this.onJumpVelocity=0;
 	this.jumpReleased = false;
+
 
 	this.playerVelocity = 400;
 	//this.sprite.body.setMaterial(spriteMaterial);
@@ -65,6 +95,10 @@ Player.prototype =
 {
 	inputReceived : function(data)
 	{
+		if(!this.canControl) //dead
+		{
+			return;
+		}
 		if(!data.simple_strike)
 		{
 			this.simple_atk_released=true;
@@ -266,5 +300,39 @@ Player.prototype =
 	playHitSound : function()
 	{
         soundManager.playHitSound();
+	},
+	damage : function(dmg)
+	{
+		this.health-=dmg;
+		this.health = Math.max(this.health,0)
+		this.myHealthBar.setPercent((this.health / this.initHealth)*100)
+		console.log("current health: "+this.health)
+	},
+	killed : function(data)
+	{
+		console.log("killed")
+		this.canControl = false;
+		this.startNewAnim({'animation_name':'death'})
+		this.sprite.animations.play('death')
+	},
+	reset : function(position,health)
+	{
+		console.log("respawn")
+		//this.sprite.position.set(position[0],position[1])
+		this.sprite.body.x = position[0]
+		this.sprite.body.y = position[1]
+
+		this.health = health
+		this.sprite.animations.play('idle');
+		this.startNewAnim({'animation_name':'idle'})
+		this.grounded = false;
+		this.simple_atk_released=true;
+		this.double_atk_released=true;
+		this.myHealthBar.setPercent(100)
+
+		if(this.local)
+		{
+			this.canControl = true;
+		}
 	}
 }
