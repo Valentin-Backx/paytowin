@@ -88,11 +88,11 @@ define(["socket.io","collide","helpers","player","item"],function(io,collide) {
 
 			var tileObjects = game.physics.p2.convertTilemap(map,"collision_layer",)
 
-			  for (var i = 0; i < tileObjects.length; i++) {        
+			  for (var i = 0; i < tileObjects.length; i++) {
 			  	var tileBody = tileObjects[i];        
 			  	tileBody.setCollisionGroup(game.tilesCollisionGroup);        
 			  	tileBody.collides(game.playerCollisionGroup);    
-			  } 
+			  }
 
 			//listen to the “connect” message from the server. The server 
 			//automatically emit a “connect” message when the cleint connets.When 
@@ -218,9 +218,18 @@ define(["socket.io","collide","helpers","player","item"],function(io,collide) {
 				game.debug.geom(debugGeoms[i],'rgba(255,0,0,1)')
 			}*/
 
+			if(debugGeoms.length>0)
+			{
+
+				console.log(game.enemies[0].sprite.getBounds());
+/*				for (var i = debugGeoms.length - 1; i >= 0; i--) {
+					console.log(debugGeoms[i])
+				}*/
+				debugGeoms=[]
+			}
 			for (var i = game.enemies.length - 1; i >= 0; i--) {
-				//game.debug.geom(game.enemies[i].sprite.getBounds(),'rgba(0,255,0,1)');
-				game.debug.spriteBounds(game.enemies[i].sprite);
+				game.debug.geom(game.enemies[i].sprite.getBounds(),'rgba(255,0,0,1)');
+				//game.debug.spriteBounds(game.enemies[i].sprite);
 			}
 
 			/*
@@ -278,7 +287,8 @@ define(["socket.io","collide","helpers","player","item"],function(io,collide) {
 		var hit=[];
 		for (var i = game.enemies.length - 1; i >= 0; i--) {
 				//game.enemies[i].sprite.getBounds();
-				if(Phaser.Rectangle.intersects(r,game.enemies[i].sprite._bounds))
+				console.log(game.enemies[i].sprite.getBounds());
+				if(r.intersects(game.enemies[i].sprite.getBounds()))
 				{
 					hit.push(game.enemies[i].id);
 				}
