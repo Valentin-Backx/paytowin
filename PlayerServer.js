@@ -21,6 +21,7 @@ var Player = function (startX, startY,socket,initParams) {
   }
   this.armor = this.parameters.armor;
   this.health = this.parameters.health;
+
 }
 
 Player.prototype.damage = function(dmg,attacker) {
@@ -56,7 +57,8 @@ Player.prototype.broadcastBody = function()
 		this.socket.broadcast.emit("body_update",{
 			"velocity":player.velocity,
 			"pos":player.position,
-			"id":this.id
+			"id":this.id,
+      "scaleXSign":this.scaleXSign
 		})
 	}
 

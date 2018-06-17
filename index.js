@@ -260,6 +260,7 @@ function onBodyPositionReceived(data)
 	var player = find_playerid(this.id,this.room);
 	player.position = data.position;
 	player.velocity = data.velocity;
+	player.scaleXSign = data.scaleXSign;
 }
 
 function onPlayerHit(data)

@@ -239,13 +239,15 @@ Player.prototype =
 			var resultingPosition = Phaser.Point.interpolate(previousPosition,positionTarget,rate);
 			this.sprite.position = resultingPosition;
 
-			if(resultingPosition.x < previousPosition.x)
+			this.sprite.scale.x = Math.sign(this.snapshots[1].scaleXSign)*this.scaleBase
+
+/*			if(resultingPosition.x < previousPosition.x&&resultingPosition.x-previousPosition.x <-1)
 			{
 				this.sprite.scale.x = -1 * this.scaleBase
-			}else
+			}else if(resultingPosition.x > previousPosition.x&&resultingPosition.x-previousPosition.x > 1)
 			{
 				this.sprite.scale.x = this.scaleBase
-			}
+			}*/
 		}
 
 /*		if(this.lastReceivedData){
@@ -317,7 +319,7 @@ Player.prototype =
 	},
 	reset : function(position,health)
 	{
-		console.log("respawn")
+		console.log("respawn "+health)
 		//this.sprite.position.set(position[0],position[1])
 		this.sprite.body.x = position[0]
 		this.sprite.body.y = position[1]

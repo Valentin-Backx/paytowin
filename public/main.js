@@ -165,7 +165,8 @@ define(["socket.io","collide","helpers","player","item"],function(io,collide) {
 						"velocity":{
 							"x":game.localPlayer.sprite.body.velocity.x,
 							"y":game.localPlayer.sprite.body.velocity.y
-						}
+						},
+						"scaleXSign":Math.sign(game.localPlayer.sprite.scale.x)
 					});	
 				}
 				for (var i = game.enemies.length - 1; i >= 0; i--) {
@@ -218,19 +219,20 @@ define(["socket.io","collide","helpers","player","item"],function(io,collide) {
 				game.debug.geom(debugGeoms[i],'rgba(255,0,0,1)')
 			}*/
 
-			if(debugGeoms.length>0)
+			/*if(debugGeoms.length>0)
 			{
 
-				console.log(game.enemies[0].sprite.getBounds());
-/*				for (var i = debugGeoms.length - 1; i >= 0; i--) {
+				for (var i = debugGeoms.length - 1; i >= 0; i--) {
 					console.log(debugGeoms[i])
-				}*/
+				}
 				debugGeoms=[]
-			}
-			for (var i = game.enemies.length - 1; i >= 0; i--) {
-				game.debug.geom(game.enemies[i].sprite.getBounds(),'rgba(255,0,0,1)');
-				//game.debug.spriteBounds(game.enemies[i].sprite);
-			}
+			}*/
+			/*for (var i = game.enemies.length - 1; i >= 0; i--) {
+				var bounds = game.enemies[i].sprite.getBounds();
+				var topLeft = Phaser.Point.add(bounds.topLeft,game.camera.position);
+				var draw = new Phaser.Rectangle(topLeft.x,topLeft.y,bounds.width,bounds.height)
+				game.debug.geom(draw,'rgba(255,0,0,1)');
+			}*/
 
 			/*
 			for (var i = game.enemies.length - 1; i >= 0; i--) {
@@ -273,7 +275,7 @@ define(["socket.io","collide","helpers","player","item"],function(io,collide) {
 
 	function onRespawn(data)
 	{
-		game.localPlayer.reset(data.position)
+		game.localPlayer.reset(data.position,data.health)
 	}
 
 	function onPlayerKilled(data)
@@ -283,23 +285,22 @@ define(["socket.io","collide","helpers","player","item"],function(io,collide) {
 
 	function checkHitBoxes(r,atkObj)
 	{
-		debugGeoms.push(r);		
+		//debugGeoms.push(r);		
 		var hit=[];
 		for (var i = game.enemies.length - 1; i >= 0; i--) {
-				//game.enemies[i].sprite.getBounds();
-				console.log(game.enemies[i].sprite.getBounds());
-				if(r.intersects(game.enemies[i].sprite.getBounds()))
+				
+				var bounds = game.enemies[i].sprite.getBounds();
+				var topLeft = Phaser.Point.add(bounds.topLeft,game.camera.position);
+				var draw = new Phaser.Rectangle(topLeft.x,topLeft.y,bounds.width,bounds.height)
+
+				if(r.intersects(draw))
 				{
 					hit.push(game.enemies[i].id);
 				}
 			}
 		if(hit.length>0)
 		{
-
 			socket.emit("hit_player",{"hit":hit,"damage":atkObj.baseAtkPower});
-	
-			//context== player?
-			//this.playHitSound();	
 		}
 	}
 
@@ -380,7 +381,8 @@ define(["socket.io","collide","helpers","player","item"],function(io,collide) {
 		}
 		player.pushData({
 			'position':data.pos,
-			'velocity':data.velocity
+			'velocity':data.velocity,
+			'scaleXSign':data.scaleXSign
 		})
 
 		//player.sprite.body.x = data.pos[0];
