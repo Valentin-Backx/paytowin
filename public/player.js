@@ -15,7 +15,7 @@ function Player(data,local)
 
 	this.airControlForce= 1000;
 	
-	this.sprite = game.add.sprite(data.x,data.y,'adventurer')
+	this.sprite = game.group.create(data.x,data.y,'adventurer')
 
 	if(data.health)
 	{
@@ -89,6 +89,9 @@ function Player(data,local)
 	this.damageFrameReached = function(){};
 	this.simple_atk_released=true;
 	this.double_atk_released=true;
+
+	this.sprite.z = 1
+	game.group.sort()
 }
 
 Player.prototype = 

@@ -75,14 +75,36 @@ define(["socket.io","collide","helpers","player","item"],function(io,collide) {
 		create: function () {
 			cursors = game.input.keyboard.createCursorKeys();
 
+			game.group = game.add.group();
+
 			map = game.add.tilemap('map')
 			
 			map.addTilesetImage('tileset');
+			game.mapLayers={}
+			game.mapLayers['mapCollisionlayer'] = map.createLayer("collision_layer")
+			game.group.add(game.mapLayers['mapCollisionlayer'])
+			game.mapLayers['mapCollisionlayer'].z = 1
 
-			game.mapCollisionlayer = map.createLayer("collision_layer")
-			
+			game.mapLayers['mapBackDoodadsLayer'] = map.createLayer("back_doodads")
+			game.group.add(game.mapLayers['mapBackDoodadsLayer'])
+			game.mapLayers['mapBackDoodadsLayer'].z = 0
+
+
+			game.mapLayers['mapFrontWalkLayer'] = map.createLayer("front_walk_layer")
+			game.group.add(game.mapLayers['mapFrontWalkLayer'])
+			game.mapLayers['mapFrontWalkLayer'].z = 2
+
+			game.mapLayers['mapFrontDoodadsLayer'] = map.createLayer("front_doodads")
+			game.group.add(game.mapLayers['mapFrontDoodadsLayer'])
+			game.mapLayers['mapFrontDoodadsLayer'].z = 2
+
+			game.mapLayers['mapFrontFrontDoodadsLayer'] = map.createLayer("front_front_doodads")
+			game.group.add(game.mapLayers['mapFrontFrontDoodadsLayer'])
+			game.mapLayers['mapFrontFrontDoodadsLayer'].z = 3
+
 			//game.mapCollisionlayer.setCollisionGroup(game.tilesCollisionGroup)
 			//map.setCollisionBetween(1,12,true,"collision_layer");
+			game.group.sort();
 
 			map.setCollisionByExclusion([],true,"collision_layer");
 
@@ -233,7 +255,11 @@ define(["socket.io","collide","helpers","player","item"],function(io,collide) {
 				var draw = new Phaser.Rectangle(topLeft.x,topLeft.y,bounds.width,bounds.height)
 				game.debug.geom(draw,'rgba(255,0,0,1)');
 			}*/
-
+			/*if(game.localPlayer)
+			{
+				game.debug.spriteInfo(game.localPlayer.sprite,32,32);
+				game.debug.spriteBounds(game.localPlayer.sprite)
+			}*/
 			/*
 			for (var i = game.enemies.length - 1; i >= 0; i--) {
 				game.debug.spriteInfo(game.enemies[i].sprite, 32, 32);
