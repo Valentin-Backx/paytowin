@@ -37,6 +37,13 @@ Player.prototype.damage = function(dmg,attacker) {
   this.socket.emit("suffer_damage",{dmgAmount:dmg})
 };
 
+Player.prototype.heal = function(heal) {
+  this.health += heal;
+  this.health = Math.min(this.health,this.parameters.health)
+
+  this.socket.emit("got_heal",{healAmount:heal})
+};
+
 Player.prototype.death = function(attacker) {
   this.socket.emit("killed",{enemyId:attacker});
   this.socket.broadcast.emit("player_killed",{killedPlayer:this.id,killerId:attacker});

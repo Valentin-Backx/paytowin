@@ -43,6 +43,10 @@ var lastTime;
 var timeStep= 1/70; 
 var Player = require('./PlayerServer');
 
+var cm = require('./Consumables.js')
+
+var consumablesManager = new cm()
+
 //the physics world in the server. This is where all the physics happens. 
 //we set gravity to 0 since we are just following mouse pointers.
 /*var world = new p2.World({
@@ -156,57 +160,10 @@ function onNewplayer (data) {
 
 	//send message to every connected client except the sender
 	this.broadcast.emit('new_enemyPlayer', current_info);
+
+	consumablesManager.updateAllConsumables(this);
 	
 	player_lst.push(newPlayer); 
-}
-
-
-
-function onPlayerCollision (data) {
-	var movePlayer = find_playerid(this.id); 
-	var enemyPlayer = find_playerid(data.id); 
-	
-	
-	if (movePlayer.dead || enemyPlayer.dead)
-		return
-	
-	if (!movePlayer || !enemyPlayer)
-		return
-
-	
-	if (movePlayer.size == enemyPlayer)
-		return
-	//the main player size is less than the enemy size
-	else if (movePlayer.size < enemyPlayer.size) {
-		var gained_size = movePlayer.size / 2;
-		enemyPlayer.size += gained_size; 
-		this.emit("killed");
-		//provide the new size the enemy will become
-		this.broadcast.emit('remove_player', {id: this.id});
-		this.broadcast.to(data.id).emit("gained", {new_size: enemyPlayer.size}); 
-		playerKilled(movePlayer);
-	} else {
-		var gained_size = enemyPlayer.size / 2;
-		movePlayer.size += gained_size;
-		this.emit('remove_player', {id: enemyPlayer.id}); 
-		this.emit("gained", {new_size: movePlayer.size}); 
-		this.broadcast.to(data.id).emit("killed"); 
-		//send to everyone except sender.
-		this.broadcast.emit('remove_player', {id: enemyPlayer.id});
-		playerKilled(enemyPlayer);
-	}
-	
-	console.log("someone ate someone!!!");
-}
-
-function find_food (id) {
-	for (var i = 0; i < game_instance.food_pickup.length; i++) {
-		if (game_instance.food_pickup[i].id == id) {
-			return game_instance.food_pickup[i]; 
-		}
-	}
-	
-	return false;
 }
 
 function onitemPicked (data) {
@@ -270,6 +227,20 @@ function onPlayerHit(data)
 	}
 }
 
+function onPlayerOverlapItem(data)
+{
+
+	var res = consumablesManager.playerOverlapped(data.itemData)
+	if(res)
+	{
+
+		res.useItem(find_playerid(this.id));
+
+		io.sockets.emit('despawn_item',{'id':data.itemData.id})
+
+	}
+}
+
 // find player by the the unique socket id 
 function find_playerid(id) {
 
@@ -298,10 +269,6 @@ io.sockets.on('connection', function(socket){
 	
 	// listen for new player
 	socket.on("new_player", onNewplayer);
-	//listen for new player inputs. 
-	//socket.on("input_fired", onInputFired);
-	//listen for player collision
-	socket.on("player_collision", onPlayerCollision);
 
 	//listen if player got items 
 	socket.on('item_picked', onitemPicked);
@@ -311,4 +278,6 @@ io.sockets.on('connection', function(socket){
 	socket.on('start_animation',onPlayerStartAnimation);
 
 	socket.on('hit_player',onPlayerHit);
+
+	socket.on('overlapping_item',onPlayerOverlapItem)
 });

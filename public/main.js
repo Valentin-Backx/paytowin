@@ -3,7 +3,9 @@
 	console.log(s)
 })*/
 
-define(["socket.io","collide","helpers","player","item"],function(io,collide) {
+var map;
+
+define(["socket.io","collide","helpers","player","Consumable"],function(io,collide) {
 	var socket; // define a global variable called socket 
 
 	socket = io.connect(); // send a connection request to the server
@@ -33,14 +35,12 @@ define(["socket.io","collide","helpers","player","item"],function(io,collide) {
 	// this is the main game state
 	var main = function(game){
 	};
-	var map;
 	var cursors;
 	var jumpButton;
 	var debugGeoms=[];
 	// add the 
 	main.prototype = {
 		preload: function() {
-			console.log("preloading")
 			//game.scale.scaleMode = Phaser.ScaleManager.RESIZE;
 			
 			game.world.setBounds(0, 0, gameProperties.gameWidth,gameProperties.gameHeight, false, false, false, false);
@@ -68,6 +68,8 @@ define(["socket.io","collide","helpers","player","item"],function(io,collide) {
 				85
 			)
 
+			game.load.spritesheet('items_consumables','assets/RpgItems.png',16,16);
+
 			game.tilesCollisionGroup = game.physics.p2.createCollisionGroup();
 			game.playerCollisionGroup = game.physics.p2.createCollisionGroup();
 	    },
@@ -76,6 +78,8 @@ define(["socket.io","collide","helpers","player","item"],function(io,collide) {
 			cursors = game.input.keyboard.createCursorKeys();
 
 			game.group = game.add.group();
+
+			game.consumablesGroup = game.add.group()
 
 			map = game.add.tilemap('map')
 			
@@ -101,6 +105,10 @@ define(["socket.io","collide","helpers","player","item"],function(io,collide) {
 			game.mapLayers['mapFrontFrontDoodadsLayer'] = map.createLayer("front_front_doodads")
 			game.group.add(game.mapLayers['mapFrontFrontDoodadsLayer'])
 			game.mapLayers['mapFrontFrontDoodadsLayer'].z = 3
+
+/*			game.mapLayers['consumablesLayer'] = map.createLayer("consumables")
+			game.group.add(game.mapLayers["consumablesLayer"])
+			game.mapLayers["consumablesLayer"].z = 4*/
 
 			//game.mapCollisionlayer.setCollisionGroup(game.tilesCollisionGroup)
 			//map.setCollisionBetween(1,12,true,"collision_layer");
@@ -143,19 +151,20 @@ define(["socket.io","collide","helpers","player","item"],function(io,collide) {
 			//when the player gets killed
 			socket.on('killed', onKilled);
 
-			// check for item removal
-			socket.on ('itemremove', onitemremove); 
-			// check for item update
-			socket.on('item_update', onitemUpdate); 
-
 			socket.on("body_update",onBodyUpdate);
 
 			socket.on("start_enemy_animation",onOtherPlayerAnim)
 
+			//player respawn + damage
 			socket.on('suffer_damage',onSufferDamage);
 			socket.on('killed',onKilled);
 			socket.on('player_killed',onPlayerKilled);
 			socket.on("player_respawn",onRespawn);
+			socket.on("got_heal",onHealed)
+
+			//consumables spawn and respawn
+			socket.on("update_consumables",onUpdateConsumables)
+			socket.on('despawn_item',onItemDespawn)
 
 		},
 		update: function () {
@@ -177,6 +186,8 @@ define(["socket.io","collide","helpers","player","item"],function(io,collide) {
 				});*/
 				if(game.localPlayer)
 				{
+					//test collision consumables
+
 					//setInterval, ne pas envoyer à chaque frame
 					//envoyer données de vitesse des bodies
 					socket.emit('body_position_toserver',{
@@ -189,7 +200,13 @@ define(["socket.io","collide","helpers","player","item"],function(io,collide) {
 							"y":game.localPlayer.sprite.body.velocity.y
 						},
 						"scaleXSign":Math.sign(game.localPlayer.sprite.scale.x)
-					});	
+					});
+
+					var itemOv = itemOverlap();
+					if(itemOv)
+					{
+						socket.emit('overlapping_item',itemOv.getData())
+					}
 				}
 				for (var i = game.enemies.length - 1; i >= 0; i--) {
 					game.enemies[i].update();
@@ -266,7 +283,15 @@ define(["socket.io","collide","helpers","player","item"],function(io,collide) {
 			}
 			game.debug.pointer( game.input.activePointer );*/
 
-		}
+		},
+		createFromTiledObject: function(element, group) {
+		    var sprite = group.create(element.x, element.y, element.properties.sprite);
+		 
+		      //copy all properties to the sprite
+		      Object.keys(element.properties).forEach(function(key){
+		        sprite[key] = element.properties[key];
+		      });
+		  },
 	}
 
 		// wrap the game states.
@@ -302,6 +327,30 @@ define(["socket.io","collide","helpers","player","item"],function(io,collide) {
 	function onRespawn(data)
 	{
 		game.localPlayer.reset(data.position,data.health)
+	}
+
+	function onHealed(data)
+	{
+		game.localPlayer.heal(data)
+	}
+
+	function onUpdateConsumables(data)
+	{
+		for (var i = data.length - 1; i >= 0; i--) {
+				new Consumable(data[i]);
+			}	
+	}
+
+	function onItemDespawn(data)
+	{
+		for (var i = consumables.length - 1; i >= 0; i--) {
+			if(consumables[i].id == data.id)
+			{
+				consumables[i].destroy();
+			}
+			consumables.splice(i,1);
+			return;
+		}
 	}
 
 	function onPlayerKilled(data)

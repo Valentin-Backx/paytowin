@@ -313,6 +313,15 @@ Player.prototype =
 		this.myHealthBar.setPercent((this.health / this.initHealth)*100)
 		console.log("current health: "+this.health)
 	},
+	heal : function(data)
+	{
+		this.health+=data.healAmount
+		this.health = Math.min(this.health,this.initHealth)
+		this.myHealthBar.setPercent((this.health / this.initHealth)*100)
+		console.log("current health: "+this.health)
+
+
+	},
 	killed : function(data)
 	{
 		console.log("killed")
