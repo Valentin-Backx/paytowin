@@ -17,8 +17,6 @@ var Consumable = function(data)
 }
 
 Consumable.prototype.spawn = function() {
-	
-
 	this.isSpawned=true;
 };
 
@@ -34,19 +32,21 @@ Consumable.prototype.getSpawnData = function() {
 			}
 };
 
+Consumable.prototype.canBeUsedBy = function(player) {
+	return player.health < player.parameters.health;
+};
+
 Consumable.prototype.useItem = function(player) {
 	this.isSpawned=false;
 
 	player.heal(10)
-
 	//on part du principe que c'est un soin, TODO: mettre en place l'héritage
 	//pour les autres objets
-
-
 };
 
-var ConsumableManager = function()
+var ConsumableManager = function(sockets)
 {
+	this.sockets = sockets
 	this.consumables = []
 	this.parseTileMapObjects();
 } 
@@ -71,19 +71,15 @@ ConsumableManager.prototype.concatAllConsumables = function() {
 };
 
 ConsumableManager.prototype.playerOverlapped = function(itemData) {
+
 	for (var i = this.consumables.length - 1; i >= 0; i--) {
 		if(this.consumables[i].id==itemData.id)
 		{
 			if(this.consumables[i].isSpawned)
 			{
-
 				//TODO: checker si le joueur peut utiliser le consommable
 				//(joueur marche sur un soin alors que déjà full vie)
-
-				setTimeout(this.respawnItem,this.consumables[i].respawnTime);
-
-
-
+				
 				return this.consumables[i];
 			}
 		}
@@ -91,8 +87,18 @@ ConsumableManager.prototype.playerOverlapped = function(itemData) {
 	return false;
 };
 
-ConsumableManager.prototype.respawnItem = function(id) {
-	
+ConsumableManager.prototype.scheduleItemForRespawn = function(item) {
+	setTimeout(
+		function(){
+			this.respawnItem(item.id,item)
+		}.bind(this),
+		item.respawnTime
+	);
+};
+
+ConsumableManager.prototype.respawnItem = function(id,item) {
+	item.spawn();
+	this.sockets.emit("update_consumables",[item.getSpawnData()])
 };
 
 

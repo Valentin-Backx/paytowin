@@ -67,7 +67,6 @@ function Player(data,local)
 		  this.myHealthBar.setPercent(100); 
 		  this.myHealthBar.setFixedToCamera(true);
 	}else
-
 	{
 		this.snapshots = [];
 		this.sprite.pivot.set(25,19)
@@ -82,7 +81,6 @@ function Player(data,local)
 	this.playerVelocity = 400;
 	//this.sprite.body.setMaterial(spriteMaterial);
 
-	
 	//console.log(this.sprite.getAnimation('jump')._anims)
 
 	this.startNewAnim = function(){};

@@ -166,6 +166,7 @@ define(["socket.io","collide","helpers","player","Consumable"],function(io,colli
 			socket.on("update_consumables",onUpdateConsumables)
 			socket.on('despawn_item',onItemDespawn)
 
+
 		},
 		update: function () {
 			// emit the player input
@@ -343,13 +344,14 @@ define(["socket.io","collide","helpers","player","Consumable"],function(io,colli
 
 	function onItemDespawn(data)
 	{
+		console.log("despawn: "+data.id)
 		for (var i = consumables.length - 1; i >= 0; i--) {
 			if(consumables[i].id == data.id)
 			{
 				consumables[i].destroy();
+				consumables.splice(i,1);
+				return;
 			}
-			consumables.splice(i,1);
-			return;
 		}
 	}
 

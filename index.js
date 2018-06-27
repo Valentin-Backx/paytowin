@@ -45,7 +45,7 @@ var Player = require('./PlayerServer');
 
 var cm = require('./Consumables.js')
 
-var consumablesManager = new cm()
+var consumablesManager = new cm(io.sockets)
 
 //the physics world in the server. This is where all the physics happens. 
 //we set gravity to 0 since we are just following mouse pointers.
@@ -132,7 +132,7 @@ function onNewplayer (data) {
 	
 	//information to be sent to all clients except sender
 	var current_info = {
-		id: newPlayer.id, 
+		id: newPlayer.id,
 		x: newPlayer.position[0],
 		y: newPlayer.position[1],
 		health:newPlayer.health
@@ -229,15 +229,18 @@ function onPlayerHit(data)
 
 function onPlayerOverlapItem(data)
 {
-
 	var res = consumablesManager.playerOverlapped(data.itemData)
+
 	if(res)
 	{
+		var player = find_playerid(this.id)
+		if(res.canBeUsedBy(player))
+		{
+			res.useItem(player);
 
-		res.useItem(find_playerid(this.id));
-
-		io.sockets.emit('despawn_item',{'id':data.itemData.id})
-
+			io.sockets.emit('despawn_item',{'id':data.itemData.id})
+			consumablesManager.scheduleItemForRespawn(res);
+		}
 	}
 }
 
@@ -262,7 +265,7 @@ function onPlayerStartAnimation(data)
 
 // listen for a connection request from any client
 io.sockets.on('connection', function(socket){
-	console.log("socket connected"); 
+	console.log("socket connected");
 	
 	// listen for disconnection; 
 	socket.on('disconnect', onClientdisconnect); 
@@ -279,5 +282,5 @@ io.sockets.on('connection', function(socket){
 
 	socket.on('hit_player',onPlayerHit);
 
-	socket.on('overlapping_item',onPlayerOverlapItem)
+	socket.on('overlapping_item',onPlayerOverlapItem);
 });

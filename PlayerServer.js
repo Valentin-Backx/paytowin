@@ -21,7 +21,6 @@ var Player = function (startX, startY,socket,initParams) {
   }
   this.armor = this.parameters.armor;
   this.health = this.parameters.health;
-
 }
 
 Player.prototype.damage = function(dmg,attacker) {
