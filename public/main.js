@@ -56,7 +56,7 @@ define(["socket.io","collide","helpers","player","Consumable"],function(io,colli
 			// turn on collision detection
 			game.physics.p2.setImpactEvents(true);
 
-			game.physics.p2.world.defaultContactMaterial.friction = 3;
+			game.physics.p2.world.defaultContactMaterial.friction = 9;
 			game.load.tilemap('map','assets/projets_tilemaps.json',null,Phaser.Tilemap.TILED_JSON)
 			game.load.image('tileset','assets/tileset.png')
 
@@ -135,7 +135,6 @@ define(["socket.io","collide","helpers","player","Consumable"],function(io,colli
 				socket.on("connect", onsocketConnected); 
 			}
 
-
 			//listen for main player creation
 			socket.on("create_player", createPlayer);
 			//createPlayer({x: 780, y: 450, angle: 0});
@@ -165,8 +164,6 @@ define(["socket.io","collide","helpers","player","Consumable"],function(io,colli
 			//consumables spawn and respawn
 			socket.on("update_consumables",onUpdateConsumables)
 			socket.on('despawn_item',onItemDespawn)
-
-
 		},
 		update: function () {
 			// emit the player input
@@ -208,6 +205,12 @@ define(["socket.io","collide","helpers","player","Consumable"],function(io,colli
 					{
 						socket.emit('overlapping_item',itemOv.getData())
 					}
+
+					if(game.localPlayer.sprite.position.y > gameProperties.gameHeight&&!game.localPlayer.fellOut)
+					{
+						game.localPlayer.fellOut = true;
+						socket.emit('playerFellOut')
+					}
 				}
 				for (var i = game.enemies.length - 1; i >= 0; i--) {
 					game.enemies[i].update();
@@ -218,8 +221,24 @@ define(["socket.io","collide","helpers","player","Consumable"],function(io,colli
 
 			if(game.localPlayer)
 			{
-				game.camera.y = game.localPlayer.sprite.y - canvas_height/2;
-				game.camera.x = game.localPlayer.sprite.x - canvas_width/2;
+				var halfScreen = new Phaser.Point(canvas_width/2,canvas_height/2)
+
+				var dist = Phaser.Point.subtract(game.localPlayer.sprite.position,game.camera.position).subtract(halfScreen.x,halfScreen.y);
+
+				var mg = dist.getMagnitude()
+
+				dist.setMagnitude(
+					Math.min(
+						mg
+						,5000
+					)
+				)
+					
+				game.camera.position = Phaser.Point.add(game.camera.position,dist).subtract(halfScreen.x,halfScreen.y);
+
+
+				//game.camera.y = game.localPlayer.sprite.y - canvas_height/2;
+				//game.camera.x = game.localPlayer.sprite.x - canvas_width/2;
 
 				var inputs = {
 					"up":cursors.up.isDown,
@@ -500,7 +519,7 @@ define(["socket.io","collide","helpers","player","Consumable"],function(io,colli
 			return;
 		}
 		
-		removePlayer.player.destroy();
+		removePlayer.destroy();
 		game.enemies.splice(game.enemies.indexOf(removePlayer), 1);
 	}
 

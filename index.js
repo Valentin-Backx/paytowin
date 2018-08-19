@@ -253,14 +253,18 @@ function find_playerid(id) {
 			return player_lst[i]; 
 		}
 	}
-	
-	return false; 
+	throw "Player not found"
 }
 
 function onPlayerStartAnimation(data)
 {
 	//send message to every connected client except the sender
 	this.broadcast.emit('start_enemy_animation', {id: this.id,data:data});
+}
+
+function onPlayerFellOut(data)
+{
+	find_playerid(this.id).death(null,"fall");
 }
 
 // listen for a connection request from any client
@@ -283,4 +287,6 @@ io.sockets.on('connection', function(socket){
 	socket.on('hit_player',onPlayerHit);
 
 	socket.on('overlapping_item',onPlayerOverlapItem);
+
+	socket.on('playerFellOut',onPlayerFellOut);
 });

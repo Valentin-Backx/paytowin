@@ -241,26 +241,8 @@ Player.prototype =
 			this.sprite.position = resultingPosition;
 
 			this.sprite.scale.x = Math.sign(this.snapshots[1].scaleXSign)*this.scaleBase
-
-/*			if(resultingPosition.x < previousPosition.x&&resultingPosition.x-previousPosition.x <-1)
-			{
-				this.sprite.scale.x = -1 * this.scaleBase
-			}else if(resultingPosition.x > previousPosition.x&&resultingPosition.x-previousPosition.x > 1)
-			{
-				this.sprite.scale.x = this.scaleBase
-			}*/
 		}
 
-/*		if(this.lastReceivedData){
-			
-			var positionTarget = new Phaser.Point(this.lastReceivedData.position[0],this.lastReceivedData.position[1]);
-			
-			if(this.previousData)
-			{
-				//var previousPos = new Phaser.Point(this.previousData.position[0],this.previousData.position[1]);
-				/*var velocity = new Phaser.Point(this.lastReceivedData.velocity.x,this.lastReceivedData.velocity.y).getMagnitude();*/
-
-				//var vector = Phaser.Point.subtract(positionTarget,previousPos);
 
 	},
 	startAnim : function(animData)
@@ -334,6 +316,10 @@ Player.prototype =
 		this.sprite.body.x = position[0]
 		this.sprite.body.y = position[1]
 
+		this.sprite.body.velocity.x=0
+		this.sprite.body.velocity.y=0
+
+
 		this.health = health
 		this.sprite.animations.play('idle');
 		this.startNewAnim({'animation_name':'idle'})
@@ -346,5 +332,9 @@ Player.prototype =
 		{
 			this.canControl = true;
 		}
+	},
+	destroy : function()
+	{
+		this.sprite.destroy();
 	}
 }

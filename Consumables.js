@@ -33,6 +33,10 @@ Consumable.prototype.getSpawnData = function() {
 };
 
 Consumable.prototype.canBeUsedBy = function(player) {
+	if(!player.parameters)
+	{
+		console.log(player)
+	}
 	return player.health < player.parameters.health;
 };
 

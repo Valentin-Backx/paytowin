@@ -43,9 +43,9 @@ Player.prototype.heal = function(heal) {
   this.socket.emit("got_heal",{healAmount:heal})
 };
 
-Player.prototype.death = function(attacker) {
+Player.prototype.death = function(attacker,reason) {
   this.socket.emit("killed",{enemyId:attacker});
-  this.socket.broadcast.emit("player_killed",{killedPlayer:this.id,killerId:attacker});
+  this.socket.broadcast.emit("player_killed",{"killedPlayer":this.id,"killerId":attacker,"reason":reason});
 
   setTimeout(this.respawn.bind(this),4000);
 };
@@ -54,6 +54,7 @@ Player.prototype.respawn = function() {
   this.position = [this.parameters.x,this.parameters.y]
   this.health = this.parameters.health
   this.socket.emit("player_respawn",{position:this.position,health:this.health});
+
 };
 
 
